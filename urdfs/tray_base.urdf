@@ -1,0 +1,182 @@
+<?xml version="1.0"?>
+<robot name="substrate_tray_param" xmlns:xacro="http://ros.org/wiki/xacro">
+  <!-- Parametric tray + substrates (xacro). Units: meters. -->
+  <!-- Compatible with older xacro (no <xacro:for>): uses recursive macros + <xacro:if>. -->
+
+  <!-- ========================= Materials ========================= -->
+  <material name="tray_dark"><color rgba="0.2 0.2 0.22 1"/></material>
+  <material name="substrate_glass"><color rgba="0.8 0.85 0.9 0.9"/></material>
+
+  <!-- ========================= User Parameters =================== -->
+  <xacro:property name="Nrows" value="5"/>
+  <xacro:property name="Ncols" value="5"/>
+
+  <xacro:property name="sub_x" value="0.01"/>
+  <xacro:property name="sub_y" value="0.01"/>
+  <xacro:property name="sub_z" value="0.0011"/>
+
+  <xacro:property name="pitch_x" value="0.015"/>
+  <xacro:property name="pitch_y" value="0.015"/>
+
+  <xacro:property name="wall" value="0.005"/>
+  <xacro:property name="tray_thk" value="0.0012"/>
+
+  <xacro:property name="bottom_top" value="0.0001"/>
+  <xacro:property name="bottom_thk" value="0.0006"/>
+
+  <xacro:property name="dx_lim" value="0.002"/>
+  <xacro:property name="dy_lim" value="0.002"/>
+  <xacro:property name="dz_upper" value="0.01"/>
+  <xacro:property name="yaw_vel" value="2.0"/>
+
+  <!-- ========================= Derived Params ==================== -->
+  <xacro:property name="outer_x" value="${Ncols*pitch_x + wall}"/>
+  <xacro:property name="outer_y" value="${Nrows*pitch_y + wall}"/>
+  <xacro:property name="tray_top" value="${tray_thk}"/>
+  <xacro:property name="sub_center_z0" value="${tray_top - sub_z/2}"/>
+  <xacro:property name="bottom_center_z" value="${bottom_top - bottom_thk/2}"/>
+
+  <!-- ========================= Helper Macros ===================== -->
+  <xacro:macro name="vertical_bar" params="i">
+    <!-- i in [0..Ncols]; bar center x = (i - Ncols/2)*pitch_x -->
+    <xacro:property name="xpos" value="${(i - Ncols/2.0)*pitch_x}"/>
+    <visual>
+      <origin xyz="${xpos} 0 ${tray_thk/2}"/>
+      <geometry><box size="${wall} ${outer_y} ${tray_thk}"/></geometry>
+      <material name="tray_dark"/>
+    </visual>
+    <collision>
+      <origin xyz="${xpos} 0 ${tray_thk/2}"/>
+      <geometry><box size="${wall} ${outer_y} ${tray_thk}"/></geometry>
+    </collision>
+  </xacro:macro>
+
+  <xacro:macro name="horizontal_bar" params="j">
+    <!-- j in [0..Nrows]; bar center y = (j - Nrows/2)*pitch_y -->
+    <xacro:property name="ypos" value="${(j - Nrows/2.0)*pitch_y}"/>
+    <visual>
+      <origin xyz="0 ${ypos} ${tray_thk/2}"/>
+      <geometry><box size="${outer_x} ${wall} ${tray_thk}"/></geometry>
+      <material name="tray_dark"/>
+    </visual>
+    <collision>
+      <origin xyz="0 ${ypos} ${tray_thk/2}"/>
+      <geometry><box size="${outer_x} ${wall} ${tray_thk}"/></geometry>
+    </collision>
+  </xacro:macro>
+
+  <!-- Recursive placement for bars -->
+    <xacro:macro name="place_vbars" params="i">
+    <!-- Use strict < and extend bound by +1 to avoid <= in old xacro -->
+    <xacro:if value="${i &lt; Ncols+1}">
+      <xacro:vertical_bar i="${i}"/>
+      <xacro:place_vbars i="${i+1}"/>
+    </xacro:if>
+  </xacro:macro>
+
+    <xacro:macro name="place_hbars" params="j">
+    <!-- Use strict < and extend bound by +1 to avoid <= in old xacro -->
+    <xacro:if value="${j &lt; Nrows+1}">
+      <xacro:horizontal_bar j="${j}"/>
+      <xacro:place_hbars j="${j+1}"/>
+    </xacro:if>
+  </xacro:macro>
+
+  <!-- Substrate cell with x/y/z + yaw joints -->
+  <xacro:macro name="substrate_cell" params="r c">
+    <xacro:property name="x0" value="${(c - (Ncols-1)/2.0)*pitch_x}"/>
+    <xacro:property name="y0" value="${(r - (Nrows-1)/2.0)*pitch_y}"/>
+
+    <link name="sub_${r}_${c}_lx"/>
+    <joint name="sub_${r}_${c}_jx" type="prismatic">
+      <parent link="tray_base"/>
+      <child link="sub_${r}_${c}_lx"/>
+      <origin xyz="${x0} ${y0} ${sub_center_z0}"/>
+      <axis xyz="1 0 0"/>
+      <limit lower="${-dx_lim}" upper="${dx_lim}" effort="5" velocity="0.1"/>
+      <dynamics damping="5.0"/>
+    </joint>
+
+    <link name="sub_${r}_${c}_lxy"/>
+    <joint name="sub_${r}_${c}_jy" type="prismatic">
+      <parent link="sub_${r}_${c}_lx"/>
+      <child link="sub_${r}_${c}_lxy"/>
+      <origin xyz="0 0 0"/>
+      <axis xyz="0 1 0"/>
+      <limit lower="${-dy_lim}" upper="${dy_lim}" effort="5" velocity="0.1"/>
+      <dynamics damping="5.0"/>
+    </joint>
+
+    <link name="sub_${r}_${c}_lxyz"/>
+    <joint name="sub_${r}_${c}_jz" type="prismatic">
+      <parent link="sub_${r}_${c}_lxy"/>
+      <child link="sub_${r}_${c}_lxyz"/>
+      <origin xyz="0 0 0"/>
+      <axis xyz="0 0 1"/>
+      <limit lower="0.0" upper="${dz_upper}" effort="5" velocity="0.1"/>
+      <dynamics damping="5.0"/>
+    </joint>
+
+    <joint name="sub_${r}_${c}_yaw" type="revolute">
+      <parent link="sub_${r}_${c}_lxyz"/>
+      <child link="sub_${r}_${c}"/>
+      <origin xyz="0 0 0"/>
+      <axis xyz="0 0 1"/>
+      <limit lower="-3.1416" upper="3.1416" effort="1" velocity="${yaw_vel}"/>
+    </joint>
+
+    <link name="sub_${r}_${c}">
+      <visual>
+        <origin xyz="0 0 0"/>
+        <geometry><box size="${sub_x} ${sub_y} ${sub_z}"/></geometry>
+        <material name="substrate_glass"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0"/>
+        <geometry><box size="${sub_x} ${sub_y} ${sub_z}"/></geometry>
+      </collision>
+      <inertial>
+        <mass value="0.0003"/>
+        <origin xyz="0 0 0"/>
+        <inertia ixx="1e-8" ixy="0" ixz="0" iyy="1e-8" iyz="0" izz="1e-8"/>
+      </inertial>
+    </link>
+  </xacro:macro>
+
+  <!-- Recursive substrate grid placement -->
+  <xacro:macro name="place_cols" params="r c">
+    <xacro:if value="${c &lt; Ncols}">
+      <xacro:substrate_cell r="${r}" c="${c}"/>
+      <xacro:place_cols r="${r}" c="${c+1}"/>
+    </xacro:if>
+  </xacro:macro>
+
+  <xacro:macro name="place_rows" params="r">
+    <xacro:if value="${r &lt; Nrows}">
+      <xacro:place_cols r="${r}" c="0"/>
+      <xacro:place_rows r="${r+1}"/>
+    </xacro:if>
+  </xacro:macro>
+
+  <!-- ========================= Tray Base ========================= -->
+  <link name="tray_base">
+    <!-- Bars -->
+    <xacro:place_vbars i="0"/>
+    <xacro:place_hbars j="0"/>
+
+    <!-- Bottom plate -->
+    <visual>
+      <origin xyz="0 0 ${bottom_center_z}"/>
+      <geometry><box size="${outer_x} ${outer_y} ${bottom_thk}"/></geometry>
+      <material name="tray_dark"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 ${bottom_center_z}"/>
+      <geometry><box size="${outer_x} ${outer_y} ${bottom_thk}"/></geometry>
+    </collision>
+  </link>
+
+  <!-- ========================= Instantiate Grid ================== -->
+  <xacro:place_rows r="0"/>
+
+</robot>

@@ -1,0 +1,303 @@
+<?xml version="1.0"?>
+<robot name="pipetting_system">
+
+  <!-- ====================== -->
+  <!-- FIXED BASE MOUNT PLATE -->
+  <!-- ====================== -->
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <box size="0.08 0.08 0.01"/>
+      </geometry>
+      <material name="gray">
+        <color rgba="0.5 0.5 0.5 1"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.08 0.08 0.01"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.1"/>
+      <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/>
+    </inertial>
+  </link>
+
+  <!-- ========================= -->
+  <!-- Z-AXIS L12 ACTUATOR BODY  -->
+  <!-- ========================= -->
+  <!-- This is the fixed body of the z-axis actuator mounted to the base plate -->
+  <link name="z_actuator_body">
+    <visual>
+      <geometry>
+        <!-- L12 body: rectangular cross-section 10mm x 15mm, motor section ~52mm -->
+        <box size="0.010 0.015 0.052"/>
+      </geometry>
+      <material name="black">
+        <color rgba="0.1 0.1 0.1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.010 0.015 0.052"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.056"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+
+  <joint name="base_to_z_actuator" type="fixed">
+    <parent link="base_link"/>
+    <child link="z_actuator_body"/>
+    <!-- Mount actuator body below base plate, oriented downward (negative Z) -->
+    <origin xyz="0 0 -0.031" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ======================== -->
+  <!-- Z-AXIS MOVING SHAFT      -->
+  <!-- ======================== -->
+  <!-- This represents the extending shaft of the z-axis actuator -->
+  <link name="z_actuator_shaft">
+    <visual>
+      <geometry>
+        <!-- 9mm diameter shaft -->
+        <cylinder radius="0.0045" length="0.100"/>
+      </geometry>
+      <material name="silver">
+        <color rgba="0.7 0.7 0.7 1"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="0.0045" length="0.100"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.010"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+
+  <joint name="z_axis_joint" type="prismatic">
+    <parent link="z_actuator_body"/>
+    <child link="z_actuator_shaft"/>
+    <!-- Shaft extends downward (negative Z direction) -->
+    <origin xyz="0 0 -0.076" rpy="0 0 0"/>
+    <axis xyz="0 0 -1"/>
+    <limit lower="0.0" upper="0.100" effort="80" velocity="0.0065"/>
+  </joint>
+
+  <!-- ================================ -->
+  <!-- PIPETTE MOUNTING BRACKET/CLEVIS  -->
+  <!-- ================================ -->
+  <!-- This is where the pipette and syringe pump actuator mount -->
+  <link name="pipette_mount">
+    <visual>
+      <geometry>
+        <box size="0.025 0.025 0.015"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0.2 0.4 0.8 1"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.025 0.025 0.015"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.015"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+
+  <joint name="z_shaft_to_mount" type="fixed">
+    <parent link="z_actuator_shaft"/>
+    <child link="pipette_mount"/>
+    <origin xyz="0 0 -0.0575" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ===================================== -->
+  <!-- SYRINGE PUMP L12 ACTUATOR BODY        -->
+  <!-- ===================================== -->
+  <!-- Mounted inverted (upward facing) via clevis to pipette mount -->
+  <link name="syringe_actuator_body">
+    <visual>
+      <geometry>
+        <box size="0.010 0.015 0.052"/>
+      </geometry>
+      <material name="black"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.010 0.015 0.052"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.056"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+
+  <joint name="mount_to_syringe_actuator" type="fixed">
+    <parent link="pipette_mount"/>
+    <child link="syringe_actuator_body"/>
+    <!-- Actuator mounted inverted, extends upward -->
+    <origin xyz="0.020 0 0.033" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ===================================== -->
+  <!-- SYRINGE PUMP ACTUATOR SHAFT           -->
+  <!-- ===================================== -->
+  <!-- This shaft connects to the syringe plunger -->
+  <link name="syringe_actuator_shaft">
+    <visual>
+      <geometry>
+        <cylinder radius="0.0045" length="0.100"/>
+      </geometry>
+      <material name="silver"/>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="0.0045" length="0.100"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.010"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+
+  <joint name="syringe_pump_joint" type="prismatic">
+    <parent link="syringe_actuator_body"/>
+    <child link="syringe_actuator_shaft"/>
+    <!-- Shaft extends upward (positive Z direction) from inverted actuator -->
+    <origin xyz="0 0 0.076" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="0.0" upper="0.100" effort="80" velocity="0.0065"/>
+  </joint>
+
+  <!-- ===================================== -->
+  <!-- SYRINGE BARREL/BODY                   -->
+  <!-- ===================================== -->
+  <!-- Main transparent cylinder of the syringe -->
+  <link name="syringe_barrel">
+    <visual>
+      <geometry>
+        <!-- Typical 1mL syringe: ~6.5mm outer diameter, ~60mm barrel length -->
+        <cylinder radius="0.00325" length="0.060"/>
+      </geometry>
+      <material name="transparent">
+        <color rgba="0.8 0.8 0.9 0.6"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="0.00325" length="0.060"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.005"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+
+  <joint name="mount_to_syringe_barrel" type="fixed">
+    <parent link="pipette_mount"/>
+    <child link="syringe_barrel"/>
+    <!-- Syringe barrel positioned next to mount, extending upward -->
+    <origin xyz="0.020 0 0.022" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ===================================== -->
+  <!-- SYRINGE PLUNGER                       -->
+  <!-- ===================================== -->
+  <!-- Plunger that moves inside the syringe barrel -->
+  <link name="syringe_plunger">
+    <visual>
+      <geometry>
+        <!-- Plunger rod: 2mm diameter, length variable with stroke -->
+        <cylinder radius="0.001" length="0.080"/>
+      </geometry>
+      <material name="dark_gray">
+        <color rgba="0.3 0.3 0.3 1"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="0.001" length="0.080"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.003"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+
+  <joint name="plunger_connection" type="fixed">
+    <parent link="syringe_actuator_shaft"/>
+    <child link="syringe_plunger"/>
+    <!-- Plunger rod attached to actuator shaft tip -->
+    <origin xyz="0 0 0.090" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ===================================== -->
+  <!-- SYRINGE FLANGE (TOP)                  -->
+  <!-- ===================================== -->
+  <!-- Top flange/finger grips of syringe -->
+  <link name="syringe_flange">
+    <visual>
+      <geometry>
+        <box size="0.015 0.010 0.003"/>
+      </geometry>
+      <material name="transparent"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.015 0.010 0.003"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.001"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+
+  <joint name="barrel_to_flange" type="fixed">
+    <parent link="syringe_barrel"/>
+    <child link="syringe_flange"/>
+    <origin xyz="0 0 0.0315" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ===================================== -->
+  <!-- SYRINGE TIP/LUER LOCK                 -->
+  <!-- ===================================== -->
+  <!-- Bottom tip of the syringe where fluid exits -->
+  <link name="syringe_tip">
+    <visual>
+      <geometry>
+        <cylinder radius="0.0015" length="0.010"/>
+      </geometry>
+      <material name="transparent"/>
+    </visual>
+    <collision>
+      <geometry>
+        <cylinder radius="0.0015" length="0.010"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.001"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+
+  <joint name="barrel_to_tip" type="fixed">
+    <parent link="syringe_barrel"/>
+    <child link="syringe_tip"/>
+    <origin xyz="0 0 -0.035" rpy="0 0 0"/>
+  </joint>
+
+</robot>
